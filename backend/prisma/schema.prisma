@@ -1,0 +1,279 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                     String         @id @default(uuid())
+  email                  String         @unique
+  passwordHash           String
+  name                   String
+  role                   String         @default("CUSTOMER") // "ADMIN", "CUSTOMER", "DRIVER"
+  phoneNumber            String?
+  avatarUrl              String?
+  idVerificationStatus   String         @default("NOT_SUBMITTED") // "NOT_SUBMITTED", "PENDING", "APPROVED", "REJECTED"
+  idVerificationComments String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  documents              UserDocument[]
+  bookings               Booking[]      @relation("UserBookings")
+  reviews                Review[]
+  notifications          Notification[]
+  driver                 Driver?
+  activityLogs           ActivityLog[]
+}
+
+model UserDocument {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "DRIVING_LICENSE_FRONT", "DRIVING_LICENSE_BACK", "DRIVING_LICENSE_SELFIE", "AADHAAR", "GOVT_ID"
+  fileUrl   String
+  status    String   @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  comments  String?
+  createdAt DateTime @default(now())
+}
+
+model Brand {
+  id      String @id @default(uuid())
+  name    String @unique
+  logoUrl String?
+  cars    Car[]
+}
+
+model Location {
+  id             String    @id @default(uuid())
+  name           String    @unique // e.g. "Indiranagar, Bengaluru" or "Delhi Airport (DEL)"
+  address        String
+  latitude       Float?
+  longitude      Float?
+  cars           Car[]
+  pickupBookings Booking[] @relation("PickupLocation")
+  dropBookings   Booking[] @relation("DropLocation")
+}
+
+model Car {
+  id                String         @id @default(uuid())
+  name              String         // e.g. "Swift"
+  brandId           String
+  brand             Brand          @relation(fields: [brandId], references: [id])
+  model             String         // e.g. "VXI"
+  year              Int
+  fuelType          String         // "PETROL", "DIESEL", "ELECTRIC", "CNG"
+  transmission      String         // "MANUAL", "AUTOMATIC"
+  seating           Int            // e.g. 5
+  mileage           Float          // e.g. 19.5 (km/l or km/kWh)
+  color             String?
+  regNumber         String         @unique // Vehicle Registration Number
+  rating            Float          @default(5.0)
+  availability      Boolean        @default(true)
+  status            String         @default("AVAILABLE") // "AVAILABLE", "BOOKED", "MAINTENANCE"
+  locationId        String
+  location          Location       @relation(fields: [locationId], references: [id])
+  
+  // Dynamic Flexible Pricing (in ₹ INR)
+  hourlyPrice       Float          // e.g. 100
+  dailyPrice        Float          // e.g. 1500
+  weeklyPrice       Float          // e.g. 9000
+  monthlyPrice      Float          // e.g. 35000
+  securityDeposit   Float          @default(3000)
+  extraKmCharge     Float          @default(10)  // ₹ per extra km
+  lateReturnCharge  Float          @default(200) // ₹ per hour late
+  cleaningCharge    Float          @default(300) // ₹ clean fee
+  driverCharge      Float          @default(500) // ₹ per day driver cost
+  deliveryCharge    Float          @default(250) // ₹ delivery fee
+  pickupCharge      Float          @default(250) // ₹ pickup fee
+
+  // Compliance & Docs Expiry
+  insuranceExpiry   String?        // YYYY-MM-DD
+  rcExpiry          String?        // YYYY-MM-DD
+  pollutionExpiry   String?        // YYYY-MM-DD
+  fitnessExpiry     String?        // YYYY-MM-DD
+
+  images            CarImage[]
+  blockedDates      BlockedDate[]
+  bookings          Booking[]
+  reviews           Review[]
+  maintenanceLogs   Maintenance[]
+  fleetLogs         FleetLog[]
+}
+
+model CarImage {
+  id         String  @id @default(uuid())
+  carId      String
+  car        Car     @relation(fields: [carId], references: [id], onDelete: Cascade)
+  url        String
+  orderIndex Int     @default(0)
+  isCover    Boolean @default(false)
+}
+
+model BlockedDate {
+  id        String   @id @default(uuid())
+  carId     String
+  car       Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  date      String   // "YYYY-MM-DD"
+  reason    String   // "MAINTENANCE", "HOLIDAY", "BLOCKED", "BOOKED"
+  bookingId String?  // Optional relation if blocked due to a booking
+}
+
+model Booking {
+  id                String        @id @default(uuid())
+  userId            String
+  user              User          @relation("UserBookings", fields: [userId], references: [id])
+  carId             String
+  car               Car           @relation(fields: [carId], references: [id])
+  pickupLocationId  String
+  pickupLocation    Location      @relation("PickupLocation", fields: [pickupLocationId], references: [id])
+  dropLocationId    String
+  dropLocation      Location      @relation("DropLocation", fields: [dropLocationId], references: [id])
+  
+  pickupDateTime    DateTime
+  returnDateTime    DateTime
+  durationType      String        // "HOURLY", "DAILY", "WEEKLY", "MONTHLY"
+  status            String        @default("BOOKED") // "BOOKED", "CONFIRMED", "PICKUP_READY", "ON_RIDE", "RETURNING", "COMPLETED", "CANCELLED"
+  
+  // Pickup Verification
+  pickupQrCode      String?
+  pickupOtp         String?
+  pickupOdometer    Float?
+  pickupFuel        Float?
+  pickupDamageNotes String?
+  pickupSignature   String?       // base64 image path
+  
+  // Return Verification
+  returnOtp         String?
+  returnOdometer    Float?
+  returnFuel        Float?
+  returnDamageNotes String?
+  returnSignature   String?       // base64 image path
+  lateFee           Float         @default(0)
+  penaltyFee        Float         @default(0)
+  
+  // Pricing Details
+  baseAmount        Float
+  taxAmount         Float
+  insuranceAmount   Float
+  securityDeposit   Float
+  discountAmount    Float         @default(0)
+  finalAmount       Float
+  paymentStatus     String        @default("PENDING") // "PENDING", "PAID", "PARTIAL", "REFUNDED"
+  
+  driverRequired    Boolean       @default(false)
+  driverId          String?
+  driver            Driver?       @relation(fields: [driverId], references: [id])
+
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  payments          Payment[]
+  reviews           Review[]
+  transactions      Transaction[]
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  bookingId     String
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount        Float
+  paymentMethod String   // "UPI", "CARD", "NET_BANKING", "WALLET"
+  transactionId String   @unique
+  gateway       String   // "STRIPE", "RAZORPAY", "MOCK"
+  status        String   @default("PENDING") // "PENDING", "SUCCESS", "FAILED", "REFUNDED"
+  type          String   @default("ADVANCE") // "ADVANCE", "FINAL", "REFUND", "FULL"
+  createdAt     DateTime @default(now())
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        String   // "CREDIT" (received), "DEBIT" (refunded/payout)
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  carId      String
+  car        Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating     Float
+  comment    String
+  ownerReply String?
+  likes      Int      @default(0)
+  images     String?  // JSON array string of image urls
+  createdAt  DateTime @default(now())
+}
+
+model Coupon {
+  id               String    @id @default(uuid())
+  code             String    @unique
+  type             String    // "PERCENTAGE", "FLAT"
+  value            Float
+  expiryDate       DateTime
+  usageLimit       Int       @default(100)
+  usageCount       Int       @default(0)
+  minBookingAmount Float     @default(0)
+  isActive         Boolean   @default(true)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  channel   String   // "EMAIL", "SMS", "WHATSAPP", "IN_APP"
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Driver {
+  id                 String    @id @default(uuid())
+  userId             String    @unique
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  licenseNumber      String    @unique
+  availabilityStatus String    @default("AVAILABLE") // "AVAILABLE", "BUSY", "OFF_DUTY"
+  bookings           Booking[]
+}
+
+model Maintenance {
+  id          String    @id @default(uuid())
+  carId       String
+  car         Car       @relation(fields: [carId], references: [id], onDelete: Cascade)
+  type        String    // "SERVICE", "REPAIR", "CLEANING", "ACCIDENT"
+  description String
+  cost        Float
+  startDate   DateTime
+  endDate     DateTime?
+  status      String    @default("SCHEDULED") // "SCHEDULED", "IN_PROGRESS", "COMPLETED"
+  createdAt   DateTime  @default(now())
+}
+
+model FleetLog {
+  id              String   @id @default(uuid())
+  carId           String
+  car             Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  latitude        Float
+  longitude       Float
+  fuelLevel       Float    // Percentage (0-100)
+  odometerReading Float
+  timestamp       DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String   // e.g. "LOGIN", "CREATE_BOOKING", "UPLOAD_DL"
+  details   String?
+  timestamp DateTime @default(now())
+}
