@@ -27,3 +27,7 @@ pnpm-debug.log*
 # OS Files
 .DS_Store
 Thumbs.db
+
+# SQLite Databases
+*.db
+*.db-journal
