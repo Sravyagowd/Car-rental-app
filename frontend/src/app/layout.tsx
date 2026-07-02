@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import Navbar from "@/components/Navbar";
@@ -35,15 +36,15 @@ export default function RootLayout({
                 <div>
                   <h4 className="font-bold text-lg mb-3">INDDRIVE</h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    India's leading self-drive car rental agency. Experience premium hatchbacks, robust SUVs, and seamless pickups.
+                    India&apos;s leading self-drive car rental agency. Experience premium hatchbacks, robust SUVs, and seamless pickups.
                   </p>
                 </div>
                 <div>
                   <h5 className="font-bold text-sm mb-3">Quick Links</h5>
                   <ul className="space-y-2 text-xs text-muted-foreground">
-                    <li><a href="/cars" className="hover:text-orange-500">Browse Cars</a></li>
-                    <li><a href="/verification" className="hover:text-orange-500">Driving Verification</a></li>
-                    <li><a href="/profile" className="hover:text-orange-500">My Booking Ledger</a></li>
+                    <li><Link href="/cars" className="hover:text-orange-500">Browse Cars</Link></li>
+                    <li><Link href="/verification" className="hover:text-orange-500">Driving Verification</Link></li>
+                    <li><Link href="/profile" className="hover:text-orange-500">My Booking Ledger</Link></li>
                   </ul>
                 </div>
                 <div>

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, X, Send, Sparkles } from 'lucide-react';
+import { API_BASE_URL } from '@/config';
 
 interface Message {
   sender: 'user' | 'bot';
@@ -37,14 +38,14 @@ export default function AiChatbot() {
     setLoading(true);
 
     try {
-      const res = await fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/ai/chatbot', {
+      const res = await fetch(`${API_BASE_URL}/api/ai/chatbot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg })
       });
       const data = await res.json();
       setMessages(prev => [...prev, { sender: 'bot', text: data.reply }]);
-    } catch (err) {
+    } catch {
       setMessages(prev => [...prev, { sender: 'bot', text: 'Sorry, I couldn\'t reach the servers. Please check your network and try again!' }]);
     } finally {
       setLoading(false);

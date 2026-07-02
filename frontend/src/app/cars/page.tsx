@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '@/config';
 import { 
   Filter, 
   MapPin, 
@@ -12,8 +13,7 @@ import {
   GitCompare, 
   X, 
   Search, 
-  SlidersHorizontal,
-  ChevronDown
+  SlidersHorizontal
 } from 'lucide-react';
 
 interface Car {
@@ -42,7 +42,6 @@ interface Car {
 
 function CarBrowsingContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const { wishlist, toggleWishlist, compareList, toggleCompare } = useAuth();
   
   const [cars, setCars] = useState<Car[]>([]);
@@ -63,7 +62,7 @@ function CarBrowsingContent() {
 
   // Trigger filters load
   useEffect(() => {
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/cars/locations')
+    fetch(`${API_BASE_URL}/api/cars/locations`)
       .then(res => res.json())
       .then(data => setLocations(data))
       .catch(err => console.error(err));
@@ -72,7 +71,7 @@ function CarBrowsingContent() {
   // Fetch cars on filter change
   useEffect(() => {
     setLoading(true);
-    let url = `https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/cars?`;
+    let url = `${API_BASE_URL}/api/cars?`;
     if (searchTerm) url += `search=${searchTerm}&`;
     if (selectedBrand) url += `brand=${selectedBrand}&`;
     if (selectedFuel) url += `fuel=${selectedFuel}&`;

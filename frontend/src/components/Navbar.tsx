@@ -3,9 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../app/context/AuthContext';
+import { API_BASE_URL } from '@/config';
 import { 
   Car, 
-  User as UserIcon, 
   Settings, 
   Sun, 
   Moon, 
@@ -40,8 +40,8 @@ export default function Navbar() {
     setAuthLoading(true);
 
     const url = showAuthMode === 'login' 
-      ? 'https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/auth/login' 
-      : 'https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/auth/signup';
+      ? `${API_BASE_URL}/api/auth/login` 
+      : `${API_BASE_URL}/api/auth/signup`;
 
     const payload = showAuthMode === 'login'
       ? { email, password }
@@ -63,8 +63,9 @@ export default function Navbar() {
       setPassword('');
       setName('');
       setPhone('');
-    } catch (err: any) {
-      setAuthError(err.message || 'Error occurred');
+    } catch (err) {
+      const error = err as Error;
+      setAuthError(error.message || 'Error occurred');
     } finally {
       setAuthLoading(false);
     }
@@ -74,7 +75,7 @@ export default function Navbar() {
     setAuthError('');
     setAuthLoading(true);
     try {
-      const res = await fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/auth/google', {
+      const res = await fetch(`${API_BASE_URL}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -88,8 +89,9 @@ export default function Navbar() {
       if (!res.ok) throw new Error(data.message);
       login(data.token, data.user);
       setShowLoginModal(false);
-    } catch (err: any) {
-      setAuthError(err.message);
+    } catch (err) {
+      const error = err as Error;
+      setAuthError(error.message);
     } finally {
       setAuthLoading(false);
     }

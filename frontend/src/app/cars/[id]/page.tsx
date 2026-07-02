@@ -3,14 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE_URL } from '@/config';
 import { 
   Star, 
   MapPin, 
-  UserCheck, 
-  ShieldCheck, 
   AlertCircle, 
-  Calendar,
-  Gift, 
   FileText, 
   Fuel, 
   Gauge, 
@@ -19,6 +16,28 @@ import {
   CheckCircle2,
   LockKeyhole
 } from 'lucide-react';
+
+interface ReviewDetails {
+  id: string;
+  rating: number;
+  comment: string;
+  user: { name: string; avatarUrl?: string };
+  createdAt: string;
+  ownerReply?: string;
+}
+
+interface CalculationResult {
+  durationUnits: number;
+  baseAmount: number;
+  taxAmount: number;
+  insuranceAmount: number;
+  driverCharge: number;
+  deliveryCharge: number;
+  pickupCharge: number;
+  discountAmount: number;
+  securityDeposit: number;
+  finalAmount: number;
+}
 
 interface CarDetails {
   id: string;
@@ -52,7 +71,7 @@ interface CarDetails {
   location: { name: string };
   images: { url: string }[];
   blockedDates: { date: string; reason: string }[];
-  reviews: any[];
+  reviews: ReviewDetails[];
 }
 
 export default function CarDetailPage() {
@@ -73,7 +92,7 @@ export default function CarDetailPage() {
   const [driverRequired, setDriverRequired] = useState(false);
   const [couponCode, setCouponCode] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
-  const [calcResult, setCalcResult] = useState<any>(null);
+  const [calcResult, setCalcResult] = useState<CalculationResult | null>(null);
   const [calcError, setCalcError] = useState('');
 
   // Review Form
@@ -85,7 +104,7 @@ export default function CarDetailPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    fetch(`https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/cars/${id}`)
+    fetch(`${API_BASE_URL}/api/cars/${id}`)
       .then(res => res.json())
       .then(data => {
         setCar(data);
@@ -102,7 +121,7 @@ export default function CarDetailPage() {
     const endStr = `${returnDate}T${returnTime}`;
 
     setCalcError('');
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/bookings/calculate-price', {
+    fetch(`${API_BASE_URL}/api/bookings/calculate-price`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -125,7 +144,7 @@ export default function CarDetailPage() {
         setCalcError(err.message || 'Pricing calculation failed');
         setCalcResult(null);
       });
-  }, [car, pickupDate, pickupTime, returnDate, returnTime, durationType, driverRequired, couponApplied]);
+  }, [car, pickupDate, pickupTime, returnDate, returnTime, durationType, driverRequired, couponApplied, couponCode]);
 
   const applyCoupon = () => {
     if (!couponCode) return;
@@ -155,7 +174,7 @@ export default function CarDetailPage() {
     }
 
     // Direct booking simulation
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/bookings', {
+    fetch(`${API_BASE_URL}/api/bookings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -194,20 +213,20 @@ export default function CarDetailPage() {
     }
 
     // Need a bookingId to review. Let's find user's completed booking for this car first
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/bookings/my-bookings', {
+    fetch(`${API_BASE_URL}/api/bookings/my-bookings`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(bookings => {
-        const matchingBooking = bookings.find(
-          (b: any) => b.carId === car?.id && b.status === 'COMPLETED'
+        const matchingBooking = (bookings as { carId: string; status: string; id: string }[]).find(
+          (b) => b.carId === car?.id && b.status === 'COMPLETED'
         );
 
         if (!matchingBooking) {
           throw new Error('You can only review cars you have completed rental trips for.');
         }
 
-        return fetch(`https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/cars/${car?.id}/reviews`, {
+        return fetch(`${API_BASE_URL}/api/cars/${car?.id}/reviews`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

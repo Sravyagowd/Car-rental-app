@@ -1,11 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/config';
 import { 
-  BarChart, 
-  Bar, 
   XAxis, 
   YAxis, 
   Tooltip, 
@@ -15,21 +13,13 @@ import {
 } from 'recharts';
 import { 
   TrendingUp, 
-  Users, 
   Car, 
-  CalendarDays, 
   Plus, 
   Edit3, 
   Trash2, 
   ShieldCheck, 
-  ShieldAlert, 
-  AlertTriangle,
-  Settings,
   Coins,
-  MapPin,
-  Clock,
   Wrench,
-  CheckCircle2,
   XCircle,
   Tag
 } from 'lucide-react';
@@ -50,20 +40,81 @@ interface Stats {
   monthlyEarnings: { name: string; earnings: number }[];
 }
 
+interface LocationDetails {
+  id: string;
+  name: string;
+}
+
+interface BrandDetails {
+  id: string;
+  name: string;
+}
+
+interface CarAdminItem {
+  id: string;
+  name: string;
+  brandId: string;
+  brand: { name: string };
+  model: string;
+  year: number;
+  fuelType: string;
+  transmission: string;
+  seating: number;
+  mileage: number;
+  color?: string;
+  regNumber: string;
+  locationId: string;
+  location: { name: string };
+  hourlyPrice: number;
+  dailyPrice: number;
+  weeklyPrice: number;
+  monthlyPrice: number;
+  securityDeposit: number;
+  images: { url: string }[];
+  status: string;
+}
+
+interface DocumentItem {
+  id: string;
+  type: string;
+  fileUrl: string;
+  status: string;
+}
+
+interface CustomerDetails {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber?: string;
+  idVerificationStatus: string;
+  documents: DocumentItem[];
+}
+
+interface CouponDetails {
+  id: string;
+  code: string;
+  type: string;
+  value: number;
+  expiryDate: string;
+  usageLimit: number;
+  usageCount: number;
+  minBookingAmount: number;
+  isActive: boolean;
+}
+
 export default function AdminDashboard() {
   const { user, token } = useAuth();
-  const router = useRouter();
   
   const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'cars' | 'verification' | 'coupons'>('overview');
   
   // Data lists
-  const [carsList, setCarsList] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
-  const [brands, setBrands] = useState<any[]>([]);
-  const [customersList, setCustomersList] = useState<any[]>([]);
-  const [couponsList, setCouponsList] = useState<any[]>([]);
+  const [carsList, setCarsList] = useState<CarAdminItem[]>([]);
+  const [locations, setLocations] = useState<LocationDetails[]>([]);
+  const [brands, setBrands] = useState<BrandDetails[]>([]);
+  const [customersList, setCustomersList] = useState<CustomerDetails[]>([]);
+  const [couponsList, setCouponsList] = useState<CouponDetails[]>([]);
 
   // Car Form states
   const [showAddCarModal, setShowAddCarModal] = useState(false);
@@ -102,6 +153,53 @@ export default function AdminDashboard() {
   // Verification Rejection Comments
   const [rejectionComments, setRejectionComments] = useState<Record<string, string>>({});
 
+  const fetchStats = useCallback(() => {
+    fetch(`${API_BASE_URL}/api/admin/dashboard-stats`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setStats(data))
+      .catch(err => console.error(err));
+  }, [token]);
+
+  const fetchCars = useCallback(() => {
+    // Get all cars including details
+    fetch(`${API_BASE_URL}/api/cars`)
+      .then(res => res.json())
+      .then(data => setCarsList(data))
+      .catch(err => console.error(err));
+  }, []);
+
+  const fetchLocationsAndBrands = useCallback(() => {
+    fetch(`${API_BASE_URL}/api/cars/locations`)
+      .then(res => res.json())
+      .then(data => setLocations(data))
+      .catch(err => console.error(err));
+
+    fetch(`${API_BASE_URL}/api/cars/brands`)
+      .then(res => res.json())
+      .then(data => setBrands(data))
+      .catch(err => console.error(err));
+  }, []);
+
+  const fetchCustomers = useCallback(() => {
+    fetch(`${API_BASE_URL}/api/admin/customers`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setCustomersList(data))
+      .catch(err => console.error(err));
+  }, [token]);
+
+  const fetchCoupons = useCallback(() => {
+    fetch(`${API_BASE_URL}/api/admin/coupons`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setCouponsList(data))
+      .catch(err => console.error(err));
+  }, [token]);
+
   useEffect(() => {
     setMounted(true);
     if (!token) return;
@@ -112,54 +210,7 @@ export default function AdminDashboard() {
     fetchLocationsAndBrands();
     fetchCustomers();
     fetchCoupons();
-  }, [token]);
-
-  const fetchStats = () => {
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/admin/dashboard-stats', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(err => console.error(err));
-  };
-
-  const fetchCars = () => {
-    // Get all cars including details
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/cars')
-      .then(res => res.json())
-      .then(data => setCarsList(data))
-      .catch(err => console.error(err));
-  };
-
-  const fetchLocationsAndBrands = () => {
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/cars/locations')
-      .then(res => res.json())
-      .then(data => setLocations(data))
-      .catch(err => console.error(err));
-
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/cars/brands')
-      .then(res => res.json())
-      .then(data => setBrands(data))
-      .catch(err => console.error(err));
-  };
-
-  const fetchCustomers = () => {
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/admin/customers', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => setCustomersList(data))
-      .catch(err => console.error(err));
-  };
-
-  const fetchCoupons = () => {
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/admin/coupons', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => setCouponsList(data))
-      .catch(err => console.error(err));
-  };
+  }, [token, fetchStats, fetchCars, fetchLocationsAndBrands, fetchCustomers, fetchCoupons]);
 
   // Car Management Submit
   const handleCarSubmit = (e: React.FormEvent) => {
@@ -185,8 +236,8 @@ export default function AdminDashboard() {
     };
 
     const url = editingCarId 
-      ? `https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/admin/cars/${editingCarId}` 
-      : 'https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/admin/cars';
+      ? `${API_BASE_URL}/api/admin/cars/${editingCarId}` 
+      : `${API_BASE_URL}/api/admin/cars`;
 
     const method = editingCarId ? 'PUT' : 'POST';
 
@@ -215,7 +266,7 @@ export default function AdminDashboard() {
 
   const deleteCar = (carId: string) => {
     if (!confirm('Are you sure you want to delete this car?')) return;
-    fetch(`https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/admin/cars/${carId}`, {
+    fetch(`${API_BASE_URL}/api/admin/cars/${carId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -233,7 +284,7 @@ export default function AdminDashboard() {
 
   const toggleCarMaintenance = (carId: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'MAINTENANCE' ? 'AVAILABLE' : 'MAINTENANCE';
-    fetch(`https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/admin/cars/${carId}`, {
+    fetch(`${API_BASE_URL}/api/admin/cars/${carId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -262,7 +313,7 @@ export default function AdminDashboard() {
     setCarImages(['https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=600']);
   };
 
-  const loadEditCar = (car: any) => {
+  const loadEditCar = (car: CarAdminItem) => {
     setEditingCarId(car.id);
     setCarName(car.name);
     setCarModel(car.model);
@@ -280,14 +331,14 @@ export default function AdminDashboard() {
     setCarWeekly(String(car.weeklyPrice));
     setCarMonthly(String(car.monthlyPrice));
     setCarDeposit(String(car.securityDeposit));
-    setCarImages(car.images.map((img: any) => img.url));
+    setCarImages(car.images.map((img: { url: string }) => img.url));
     setShowAddCarModal(true);
   };
 
   // Document Approval / Rejection logic
   const handleVerifyDocument = (docId: string, status: 'APPROVED' | 'REJECTED') => {
     const comments = rejectionComments[docId] || 'Document approved by admin review';
-    fetch(`https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/documents/verify-document/${docId}`, {
+    fetch(`${API_BASE_URL}/api/documents/verify-document/${docId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -310,7 +361,7 @@ export default function AdminDashboard() {
   // Coupon Submission
   const handleCouponSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/admin/coupons', {
+    fetch(`${API_BASE_URL}/api/admin/coupons`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -339,7 +390,7 @@ export default function AdminDashboard() {
   };
 
   const deleteCoupon = (id: string) => {
-    fetch(`https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/admin/coupons/${id}`, {
+    fetch(`${API_BASE_URL}/api/admin/coupons/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -371,14 +422,14 @@ export default function AdminDashboard() {
         {/* Tab Selection */}
         <div className="flex bg-muted p-1 rounded-xl gap-1 text-xs font-bold text-muted-foreground">
           {[
-            { id: 'overview', label: 'Overview Metrics' },
-            { id: 'cars', label: 'Fleet Inventory' },
-            { id: 'verification', label: 'License Approvals' },
-            { id: 'coupons', label: 'Promo Coupons' }
+            { id: 'overview' as const, label: 'Overview Metrics' },
+            { id: 'cars' as const, label: 'Fleet Inventory' },
+            { id: 'verification' as const, label: 'License Approvals' },
+            { id: 'coupons' as const, label: 'Promo Coupons' }
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-lg transition-colors ${
                 activeTab === tab.id 
                   ? 'bg-orange-500 text-white shadow-sm' 
@@ -556,7 +607,7 @@ export default function AdminDashboard() {
 
                   {/* Documents images display */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {cust.documents.map((doc: any) => (
+                    {cust.documents.map((doc) => (
                       <div key={doc.id} className="border border-border p-3 rounded-xl bg-background/60 space-y-3">
                         <span className="block text-[10px] uppercase font-bold text-muted-foreground tracking-wide">{doc.type.replace(/_/g, ' ')}</span>
                         <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="block relative h-36 rounded-lg overflow-hidden border border-border">

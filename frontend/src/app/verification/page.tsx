@@ -2,28 +2,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/config';
 import { 
   ShieldCheck, 
   ShieldAlert, 
-  UploadCloud, 
   FileText, 
   User, 
   Sparkles,
   RefreshCw,
-  Clock,
-  CheckCircle2,
-  AlertTriangle
+  Clock
 } from 'lucide-react';
 
 export default function VerificationPage() {
   const { user, token, refreshProfile } = useAuth();
-  const router = useRouter();
   
-  const [frontImage, setFrontImage] = useState('https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=600');
-  const [backImage, setBackImage] = useState('https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=600');
-  const [selfieImage, setSelfieImage] = useState('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300');
-  const [govtIdImage, setGovtIdImage] = useState('https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=600');
+  const frontImage = 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=600';
+  const backImage = 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=600';
+  const selfieImage = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300';
+  const govtIdImage = 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?w=600';
 
   // Form OCR states
   const [extractedDl, setExtractedDl] = useState('');
@@ -40,13 +36,13 @@ export default function VerificationPage() {
     if (token) {
       refreshProfile();
     }
-  }, [token]);
+  }, [token, refreshProfile]);
 
   const triggerOcrReading = async () => {
     setOcrLoading(true);
     setErrorMsg('');
     try {
-      const res = await fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/ai/ocr-license', {
+      const res = await fetch(`${API_BASE_URL}/api/ai/ocr-license`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,8 +57,9 @@ export default function VerificationPage() {
       setExtractedName(data.extractedData.name);
       setExtractedDob(data.extractedData.dob);
       setOcrDone(true);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'AI OCR analysis failed');
+    } catch (err) {
+      const error = err as Error;
+      setErrorMsg(error.message || 'AI OCR analysis failed');
     } finally {
       setOcrLoading(false);
     }
@@ -76,7 +73,7 @@ export default function VerificationPage() {
 
     try {
       // 1. Submit Front DL
-      await fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/documents/upload', {
+      await fetch(`${API_BASE_URL}/api/documents/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -86,7 +83,7 @@ export default function VerificationPage() {
       });
 
       // 2. Submit Back DL
-      await fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/documents/upload', {
+      await fetch(`${API_BASE_URL}/api/documents/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +93,7 @@ export default function VerificationPage() {
       });
 
       // 3. Submit Selfie
-      await fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/documents/upload', {
+      await fetch(`${API_BASE_URL}/api/documents/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +103,7 @@ export default function VerificationPage() {
       });
 
       // 4. Submit Gov ID
-      await fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/documents/upload', {
+      await fetch(`${API_BASE_URL}/api/documents/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,8 +114,9 @@ export default function VerificationPage() {
 
       setSuccessMsg('Your verification documents have been uploaded successfully. Admin review is pending.');
       await refreshProfile();
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Document submission failed');
+    } catch (err) {
+      const error = err as Error;
+      setErrorMsg(error.message || 'Document submission failed');
     } finally {
       setSubmitting(false);
     }

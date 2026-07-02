@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/config';
 import { 
   ShieldCheck, 
   MapPin, 
@@ -29,6 +30,7 @@ interface Car {
   rating: number;
   images: { url: string }[];
   location: { name: string };
+  mileage: number;
 }
 
 export default function LandingPage() {
@@ -43,13 +45,13 @@ export default function LandingPage() {
 
   useEffect(() => {
     // Fetch locations
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/cars/locations')
+    fetch(`${API_BASE_URL}/api/cars/locations`)
       .then(res => res.json())
       .then(data => setLocations(data))
       .catch(err => console.error(err));
 
     // Fetch featured cars (just top 3)
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/cars')
+    fetch(`${API_BASE_URL}/api/cars`)
       .then(res => res.json())
       .then(data => setFeaturedCars(data.slice(0, 3)))
       .catch(err => console.error(err));

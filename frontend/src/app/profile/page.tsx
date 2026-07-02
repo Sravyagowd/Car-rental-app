@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { API_BASE_URL } from '@/config';
 import { 
   CalendarDays, 
   MapPin, 
@@ -11,16 +12,11 @@ import {
   RefreshCw, 
   XCircle, 
   CheckCircle2, 
-  User, 
   Mail, 
   Phone,
   Shield,
   QrCode,
-  CheckCircle,
-  HelpCircle,
-  TrendingUp,
-  Sliders,
-  DollarSign
+  CheckCircle
 } from 'lucide-react';
 
 interface Booking {
@@ -54,7 +50,7 @@ interface Booking {
 }
 
 export default function ProfilePage() {
-  const { user, token, refreshProfile } = useAuth();
+  const { user, token, refreshProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,30 +79,31 @@ export default function ProfilePage() {
   const [extensionDate, setExtensionDate] = useState('');
   const [extensionLoading, setExtensionLoading] = useState(false);
 
-  const fetchBookings = () => {
+  const fetchBookings = useCallback(() => {
     if (!token) return;
     setLoading(true);
-    fetch('https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/bookings/my-bookings', {
+    fetch(`${API_BASE_URL}/api/bookings/my-bookings`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(data => setBookings(data))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
-  };
+  }, [token]);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!token) {
       router.push('/');
       return;
     }
     fetchBookings();
     refreshProfile();
-  }, [token]);
+  }, [token, fetchBookings, refreshProfile, router, authLoading]);
 
   const handleCancelBooking = (bookingId: string) => {
     if (!confirm('Are you sure you want to cancel this booking? Refund will be processed immediately.')) return;
-    fetch(`https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/bookings/${bookingId}/cancel`, {
+    fetch(`${API_BASE_URL}/api/bookings/${bookingId}/cancel`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -126,7 +123,7 @@ export default function ProfilePage() {
     if (!pickupBooking) return;
     setPickupLoading(true);
 
-    fetch(`https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/bookings/${pickupBooking.id}/verify-pickup`, {
+    fetch(`${API_BASE_URL}/api/bookings/${pickupBooking.id}/verify-pickup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -160,7 +157,7 @@ export default function ProfilePage() {
     if (!returnBooking) return;
     setReturnLoading(true);
 
-    fetch(`https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/bookings/${returnBooking.id}/verify-return`, {
+    fetch(`${API_BASE_URL}/api/bookings/${returnBooking.id}/verify-return`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -194,7 +191,7 @@ export default function ProfilePage() {
     if (!extensionBooking || !extensionDate) return;
     setExtensionLoading(true);
 
-    fetch(`https://8f720c5e353cdf2b-154-206-18-162.serveousercontent.com/api/bookings/${extensionBooking.id}/extend`, {
+    fetch(`${API_BASE_URL}/api/bookings/${extensionBooking.id}/extend`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -216,6 +213,7 @@ export default function ProfilePage() {
       .finally(() => setExtensionLoading(false));
   };
 
+  if (authLoading) return <div className="h-96 flex items-center justify-center font-bold text-sm">Verifying premium access...</div>;
   if (!user) return null;
 
   return (
